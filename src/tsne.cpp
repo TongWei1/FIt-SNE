@@ -1307,6 +1307,8 @@ void TSNE::computeGaussianPerplexity(double *X, int N, int D, unsigned int **_ro
 
     ProgressBar bar(N,60);
 
+	int K_real = K/4.0;
+	
     //const size_t nthreads = 1;
     {
         // Pre loop
@@ -1327,7 +1329,33 @@ void TSNE::computeGaussianPerplexity(double *X, int N, int D, unsigned int **_ro
                                 vector<double> distances;
                                 tree->search(obj_X[n], K + 1, &indices, &distances);
 
-                                double beta = distances2similarities(&distances[1], &cur_P[0], K, -1, perplexity, sigma, false,
+                                std::vector<int> shuffleHelper(K);
+								for (int i = 0; i < K; i++)
+								{
+								    shuffleHelper[i] = i+1;
+								}
+								random_shuffle(shuffleHelper.begin(),shuffleHelper.end());
+								vector<DataPoint> newIndices;
+								newIndices.push_back(indices[0]);
+								for (int i = 0; i < K; ++i)
+								{
+									newIndices.push_back(indices[shuffleHelper[i]]);
+								}
+								indices = newIndices;
+
+								vector<double> newDistances;
+								newDistances.push_back(distances[0]);
+								for (int i = 0; i < K; ++i)
+								{
+									newDistances.push_back(distances[shuffleHelper[i]]);
+								}
+								distances = newDistances;
+
+								// srand(10000);
+        //                         random_shuffle(indices.begin(), indices.end());
+        //                         random_shuffle(distances.begin(), distances.end());
+
+                                double beta = distances2similarities(&distances[1], &cur_P[0], K_real, -1, perplexity, sigma, false,
                                                                      perplexity_list_length, perplexity_list);
                                 ++bar;
                                 if(t == 0 && n % 100 == 0) {
@@ -1339,8 +1367,14 @@ void TSNE::computeGaussianPerplexity(double *X, int N, int D, unsigned int **_ro
                                 //    }
                                 }
 
-                                for(unsigned int m = 0; m < K; m++) {
+                                for(unsigned int m = 0; m < K_real; m++) {
                                     col_P[row_P[n] + m] = (unsigned int) indices[m + 1].index();
+          //                           double rand_number = rand()/(RAND_MAX + 1.0);
+          //                           if ( rand_number >0.5) {
+										// val_P[row_P[n] + m] = cur_P[m];
+          //                        	}else {
+          //                        		val_P[row_P[n] + m] = 0;
+          //                        	 }
                                     val_P[row_P[n] + m] = cur_P[m];
                                 }
 
